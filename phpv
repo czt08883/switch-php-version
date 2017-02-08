@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+
+# ----------------------------------------------------  FUNCTIONS ------------------------------------------------------
+
+function usage {
+	echo "USAGE: "
+	echo "     (sudo) phpv [OPTION]"
+	echo ""
+    echo "Possible options:"
+    echo "    -v, v, --version        show current PHP version"
+    echo "    -5, 5                   switch PHP version to 5.\*"
+    echo "    -7, 7                   switch PHP version to 7.\*"
+    echo ""
+}
+
+
+function currentVersion {
+	ACTIVE_APACHE_MODULE_LOAD=`ls -l /etc/apache2/mods-enabled/php*.load | awk '{print $9}' | head -1`
+	ACTIVE_APACHE_MOUDLE=`cat $ACTIVE_APACHE_MODULE_LOAD | grep LoadModule | awk '{print $3}'`
+
+	echo ""
+	tput setaf 2
+	echo "---------------[ CURRENT VERSION ]---------------"
+	tput setaf 7
+
+	tput setaf 4
+	echo -n " CLI: "
+	tput setaf 7
+	echo `php -v | head -1`
+
+	tput setaf 4
+	echo -n " APACHE MODULE: "
+	tput setaf 7
+	echo $ACTIVE_APACHE_MOUDLE
+	echo ""
+}
+
+# ------------------------------------------------------  MAIN  --------------------------------------------------------
+
+
+echo ""
+if [[ ($1 == "-v") || ($1 == "v") || ($1 == "--version")]]; then
+	currentVersion
+	echo ""
+	exit 0
+fi
+
+
+if [[ $1 -eq 5 ]]; then
+	MODULE_TO_DISABLE="php7.*"
+	MODULE_TO_ENABLE="php5.*"
+	CLI_MODULE_MASK="/usr/bin/php5*"
+elif [[ $1 -eq 7 ]]; then
+	MODULE_TO_DISABLE="php5.*"
+	MODULE_TO_ENABLE="php7.*"
+	CLI_MODULE_MASK="/usr/bin/php7*"
+else
+	usage
+    exit 0
+fi
+
+if [[ $EUID -ne 0 ]]; then
+    echo "This script must be run as root" 1>&2
+    exit 1
+fi
+
+tput smul
+tput setaf 4
+echo -n "Switching to PHP "
+tput setaf 3
+echo -n "v$1"
+tput setaf 4
+echo " ..."
+tput rmul
+tput setaf 7
+echo ""
+
+tput smul
+echo -n "Deactivating APACHE module "
+tput setaf 3
+echo -n $MODULE_TO_DISABLE
+tput setaf 7
+echo " ..."
+tput rmul
+a2dismod $MODULE_TO_DISABLE
+echo ""
+
+tput smul
+echo -n "Activating APACHE module "
+tput setaf 3
+echo -n $MODULE_TO_ENABLE
+tput setaf 7
+echo " ..."
+tput rmul
+a2enmod $MODULE_TO_ENABLE
+echo ""
+
+
+read -r -a CLI_MODULES <<< `ls -l $CLI_MODULE_MASK | awk '{print $9}' | sort -r`
+CLI_MODULE=${CLI_MODULES[0]}
+
+if [[ -n $CLI_MODULE ]]; then
+	tput smul
+	echo -n "Switching CLI module to "
+	tput setaf 3
+	echo -n $CLI_MODULE
+	tput setaf 7
+	echo " ..."
+	tput rmul
+	rm -f /etc/alternatives/php
+	ln -s $CLI_MODULE /etc/alternatives/php
+	echo ""
+
+else
+	tput setaf 1
+	echo -n "[ERROR!!!] CLI module for mask "
+	tput setaf 3
+	echo -n $CLI_MODULE_MASK
+	echo " is not found"
+	tput setaf 1
+fi
+
+
+tput smul
+echo "Restarting APACHE ..."
+tput rmul
+service apache2 restart
+echo ""
+
+currentVersion
+echo ""
