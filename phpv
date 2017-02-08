@@ -8,8 +8,8 @@ function usage {
 	echo ""
     echo "Possible options:"
     echo "    -v, v, --version        show current PHP version"
-    echo "    -5, 5                   switch PHP version to 5.\*"
-    echo "    -7, 7                   switch PHP version to 7.\*"
+    echo "    -5, 5                   switch PHP version to 5.*"
+    echo "    -7, 7                   switch PHP version to 7.*"
     echo ""
 }
 

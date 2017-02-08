@@ -10,7 +10,7 @@ Put `phpv` file into your `/usr/bin/` directory and make it executable.
 You can do this with following command (under root):
 
 ```
-wget -O /tmp/phpv.zip https://github.com/czt08883/switch-php-version/archive/master.zip; unzip /tmp/phpv.zip -d /tmp/phpv; cp /tmp/phpv/switch-php-version-master/phpv /usr/bin; chmod a+x /usr/bin/phpv`
+wget -O /tmp/phpv.zip https://github.com/czt08883/switch-php-version/archive/master.zip; unzip /tmp/phpv.zip -d /tmp/phpv; cp /tmp/phpv/switch-php-version-master/phpv /usr/bin; chmod a+x /usr/bin/phpv
 ```
 
 USAGE
