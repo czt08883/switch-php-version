@@ -46,11 +46,11 @@ if [[ ($1 == "-v") || ($1 == "v") || ($1 == "--version")]]; then
 fi
 
 
-if [[ $1 -eq 5 ]]; then
+if [[ ($1 -eq 5) || ($1 == "-5") ]]; then
 	MODULE_TO_DISABLE="php7.*"
 	MODULE_TO_ENABLE="php5.*"
 	CLI_MODULE_MASK="/usr/bin/php5*"
-elif [[ $1 -eq 7 ]]; then
+elif [[ ($1 -eq 7) || ($1 == "-7") ]]; then
 	MODULE_TO_DISABLE="php5.*"
 	MODULE_TO_ENABLE="php7.*"
 	CLI_MODULE_MASK="/usr/bin/php7*"
