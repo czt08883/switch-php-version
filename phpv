@@ -107,8 +107,7 @@ if [[ -n $CLI_MODULE ]]; then
 	tput setaf 7
 	echo " ..."
 	tput rmul
-	rm -f /etc/alternatives/php
-	ln -s $CLI_MODULE /etc/alternatives/php
+	update-alternatives --set php $CLI_MODULE
 	echo ""
 
 else
