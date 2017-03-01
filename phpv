@@ -126,8 +126,7 @@ if [[ -n $CLI_MODULE ]]; then
     textColor $COLOR_WHITE;  echo " ..."
     textUnderlineOff
 
-    rm -f /etc/alternatives/php
-    ln -s $CLI_MODULE /etc/alternatives/php
+    update-alternatives --set php $CLI_MODULE
     echo ""
 
 else
