@@ -17,16 +17,23 @@ function usage {
     echo "     (sudo) phpv [OPTION]"
     echo ""
     echo "Possible options:"
-    echo "    -v, v, --version        show current PHP version"
-    echo "    -5, 5                   switch PHP version to 5.*"
-    echo "    -7, 7                   switch PHP version to 7.*"
+    echo "    -v, v, --version               show current PHP version"
+    echo "    -x, -xy, -x.y, x, xy, x.y      switch PHP version to x.y. '.y' is optional."
+    echo "Examples:"
+    echo "     sudo phpv 5                   will switch to first php5.* found"
+    echo "     sudo phpv 71                  will switch to php7.1"
+    echo "     sudo phpv -5.6                will switch to php5.6"
     echo ""
+}
+
+function getLoadedApacheModule {
+  ACTIVE_APACHE_MODULE_LOAD=`ls -l /etc/apache2/mods-enabled/php*.load | awk '{print $9}' | head -1`
+  echo `cat $ACTIVE_APACHE_MODULE_LOAD | grep LoadModule | awk '{print $3}'`
 }
 
 
 function currentVersion {
-    ACTIVE_APACHE_MODULE_LOAD=`ls -l /etc/apache2/mods-enabled/php*.load | awk '{print $9}' | head -1`
-    ACTIVE_APACHE_MOUDLE=`cat $ACTIVE_APACHE_MODULE_LOAD | grep LoadModule | awk '{print $3}'`
+    ACTIVE_APACHE_MOUDLE=$(getLoadedApacheModule)
 
     echo ""
     textColor $COLOR_GREEN
@@ -61,6 +68,22 @@ function textUnderlineOff {
 }
 
 
+function stripNonNumbers {
+  echo `echo $1 | sed -e 's/[^0-9]//g'`
+}
+
+function getVersionFromParameter {
+  fullVersion=$(stripNonNumbers $1)
+  echo ${fullVersion:0:1}
+}
+
+function getSubVersionFromParameter {
+  fullVersion=$(stripNonNumbers $1)
+  subVersion=${fullVersion:1}
+  [[ !  -z  $subVersion  ]] && echo ".$subVersion"
+}
+
+
 # ------------------------------------------------------  MAIN  --------------------------------------------------------
 
 
@@ -72,19 +95,28 @@ if [[ ($1 == "-v") || ($1 == "v") || ($1 == "--version")]]; then
     exit 0
 fi
 
-if [[ ($1 -eq 5) || ($1 == "-5") ]]; then
-    MODULE_TO_DISABLE="php7.*"
-    MODULE_TO_ENABLE="php5.*"
-    CLI_MODULE_MASK="/usr/bin/php5*"
-elif [[ ($1 -eq 7) || ($1 == "-7") ]]; then
-    MODULE_TO_DISABLE="php5.*"
-    MODULE_TO_ENABLE="php7.*"
-    CLI_MODULE_MASK="/usr/bin/php7*"
-else
+if [ $# -eq 0 ]; then
     usage
     exit 0
 fi
 
+VERSION_TO_ENABLE=$(getVersionFromParameter $1)
+SUBVERSION_TO_ENABLE=$(getSubVersionFromParameter $1)
+
+APACHE_MODULE_MASK="php$VERSION_TO_ENABLE$SUBVERSION_TO_ENABLE*"
+
+CLI_MODULE_PREFIX=/usr/bin/php
+CLI_MODULE_MASK="$CLI_MODULE_PREFIX$VERSION_TO_ENABLE$SUBVERSION_TO_ENABLE*"
+read -r -a CLI_MODULES <<< `ls -l $CLI_MODULE_MASK 2>/dev/null | awk '{print $9}' | sort -r`
+CLI_MODULE=${CLI_MODULES[0]}
+
+if [[ ! -n $CLI_MODULE ]]; then
+      textColor $COLOR_RED;    echo -n "[ERROR!!!] CLI module for mask "
+      textColor $COLOR_YELLOW; echo -n $CLI_MODULE_MASK
+      textColor $COLOR_RED;    echo    " is not found"
+      textColor $COLOR_WHITE;
+      exit 1
+fi
 
 if [[ $EUID -ne 0 ]]; then
     echo "This script must be run as root" 1>&2
@@ -94,46 +126,30 @@ fi
 
 textUnderlineOn
 textColor $COLOR_BLUE;   echo -n "Switching to PHP version "
-textColor $COLOR_YELLOW; echo -n "$1"
+textColor $COLOR_YELLOW; echo -n "$VERSION_TO_ENABLE$SUBVERSION_TO_ENABLE"
 textColor $COLOR_BLUE;   echo    " ..."
 textUnderlineOff
 textColor $COLOR_WHITE;  echo ""
 
 
-textUnderlineOn;         echo -n "Deactivating APACHE module "
-textColor $COLOR_YELLOW; echo -n $MODULE_TO_DISABLE
+textUnderlineOn;         echo -n "Switching CLI module to "
+textColor $COLOR_YELLOW; echo -n $CLI_MODULE
 textColor $COLOR_WHITE;  echo " ..."
 textUnderlineOff
-
-a2dismod $MODULE_TO_DISABLE
+update-alternatives --set php $CLI_MODULE
 echo ""
 
+textUnderlineOn;         echo -n "Deactivating current APACHE module ... "
+textUnderlineOff
+a2dismod "php*"
+echo ""
 
 textUnderlineOn;         echo -n "Activating APACHE module "
-textColor $COLOR_YELLOW; echo -n $MODULE_TO_ENABLE
+textColor $COLOR_YELLOW; echo -n $APACHE_MODULE_MASK
 textColor $COLOR_WHITE;  echo " ..."
 textUnderlineOff
-a2enmod $MODULE_TO_ENABLE
+a2enmod $APACHE_MODULE_MASK
 echo ""
-
-
-read -r -a CLI_MODULES <<< `ls -l $CLI_MODULE_MASK | awk '{print $9}' | sort -r`
-CLI_MODULE=${CLI_MODULES[0]}
-
-if [[ -n $CLI_MODULE ]]; then
-    textUnderlineOn;         echo -n "Switching CLI module to "
-    textColor $COLOR_YELLOW; echo -n $CLI_MODULE
-    textColor $COLOR_WHITE;  echo " ..."
-    textUnderlineOff
-
-    update-alternatives --set php $CLI_MODULE
-    echo ""
-
-else
-    textColor $COLOR_RED;    echo -n "[ERROR!!!] CLI module for mask "
-    textColor $COLOR_YELLOW; echo -n $CLI_MODULE_MASK
-    textColor $COLOR_RED;    echo    "is not found"
-fi
 
 textUnderlineOn;             echo "Restarting APACHE ..."
 textUnderlineOff;
