@@ -18,10 +18,11 @@ USAGE:
      (sudo) phpv [OPTION]
 
 Possible options:
+-----------------
     -v, v, --version               show current PHP version
     -x, -xy, -x.y, x, xy, x.y      switch PHP version to x.y. '.y' is optional.
 
-    
+
 Examples:
 ---------
      sudo phpv 5                   will switch to first php5.* found"
