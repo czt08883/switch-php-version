@@ -26,6 +26,41 @@ function usage {
     echo ""
 }
 
+
+function availableVersions {
+    ACTIVE_APACHE_MODULE_LOAD=`ls -l /etc/apache2/mods-enabled/php*.load | awk '{print $9}' | head -1`
+    ACTIVE_PHPVERSION=`echo $ACTIVE_APACHE_MODULE_LOAD | sed -r 's/(.*php)(.*)(.load)/\2/g'`
+    AVAILABLE_APACHE_MODULES_LOAD=`ls -l /etc/apache2/mods-available/php*.load | awk '{print $9}' | sort -h`
+
+    echo ""
+    textColor $COLOR_GREEN
+    echo "[ PHP VERSIONS AVAILABLE ]----------------------------------------------------"
+    echo ""
+    textColor $COLOR_WHITE
+
+    for i in $AVAILABLE_APACHE_MODULES_LOAD; do
+        PHPVERSION=`echo $i | sed -r 's/(.*php)(.*)(.load)/\2/g'`
+        textColor $COLOR_GREEN
+        if [[ $PHPVERSION == $ACTIVE_PHPVERSION ]]; then
+            echo -n " * "
+        else
+            echo -n "   "
+        fi
+        textColor $COLOR_BLUE
+        echo -n $PHPVERSION
+        if [[ $PHPVERSION == $ACTIVE_PHPVERSION ]]; then
+            textColor $COLOR_GREEN
+            echo -ne "\t<-- ACTIVE"
+        else
+            textColor $COLOR_MAGENTA
+            echo -ne "\tto activate:  "
+            textColor $COLOR_WHITE
+            echo -n  "(sudo) phpv $PHPVERSION"
+        fi
+        echo ""
+    done
+}
+
 function getLoadedApacheModule {
   ACTIVE_APACHE_MODULE_LOAD=`ls -l /etc/apache2/mods-enabled/php*.load | awk '{print $9}' | head -1`
   echo `cat $ACTIVE_APACHE_MODULE_LOAD | grep LoadModule | awk '{print $3}'`
@@ -37,7 +72,8 @@ function currentVersion {
 
     echo ""
     textColor $COLOR_GREEN
-    echo "---------------[ CURRENT VERSION ]---------------"
+    echo "[ CURRENT ACTIVE VERSION DETAILS ]---------------------------------------------"
+    echo ""
     textColor $COLOR_WHITE
 
     textColor $COLOR_BLUE
@@ -90,6 +126,7 @@ function getSubVersionFromParameter {
 echo ""
 
 if [[ ($1 == "-v") || ($1 == "v") || ($1 == "--version")]]; then
+    availableVersions
     currentVersion
     echo ""
     exit 0
